@@ -19,3 +19,26 @@ COMPANY_NAME = "kantoku"
 
 # Palettes
 sample_palette_id = f"{COMPANY_NAME}_{ADDIN_NAME}_palette_id"
+
+# Command Definitions
+CMD_NAME = "ドキュメント ツリー"
+CMD_Description = "関連ドキュメントをツリー表示します"
+
+# Palette
+PALETTE_NAME = "Document Tree"
+
+# UI Location
+WORKSPACE_ID = "FusionSolidEnvironment"
+TAB_ID = "ToolsTab"
+TAB_NAME = "Test"
+PANEL_ID = "SolidScriptsAddinsPanel"
+PANEL_NAME = "Document"
+PANEL_AFTER = ""
+
+# Messages
+MESSAGES = {
+    "OfflineError": "オフラインモードではチェック出来ません!!",
+    "NoDataError": "関連ドキュメントは有りません!",
+    "UnknownUser": "?????",
+    "ProjectNamePrefix": "-- プロジェクト名:{} --"
+}

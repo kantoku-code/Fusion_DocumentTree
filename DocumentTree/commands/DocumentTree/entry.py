@@ -13,9 +13,9 @@ ui = app.userInterface
 
 # TODO ********************* Change these names *********************
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_DocumentTree"
-CMD_NAME = "ドキュメント ツリー"
-CMD_Description = "関連ドキュメントをツリー表示します"
-PALETTE_NAME = "Document Tree"
+CMD_NAME = config.CMD_NAME
+CMD_Description = config.CMD_Description
+PALETTE_NAME = config.PALETTE_NAME
 IS_PROMOTED = True
 
 # Using "global" variables by referencing values from /config.py
@@ -37,12 +37,12 @@ PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
 # This is done by specifying the workspace, the tab, and the panel, and the
 # command it will be inserted beside. Not providing the command to position it
 # will insert it at the end.
-WORKSPACE_ID = "FusionSolidEnvironment"
-TAB_ID = "ToolsTab"
-TAB_NAME = "Test"
-PANEL_ID = "SolidScriptsAddinsPanel"
-PANEL_NAME = "Document"
-PANEL_AFTER = ""
+WORKSPACE_ID = config.WORKSPACE_ID
+TAB_ID = config.TAB_ID
+TAB_NAME = config.TAB_NAME
+PANEL_ID = config.PANEL_ID
+PANEL_NAME = config.PANEL_NAME
+PANEL_AFTER = config.PANEL_AFTER
 
 COMMAND_BESIDE_ID = ""
 
@@ -57,6 +57,8 @@ local_handlers = []
 _dataContainer = None
 _myCustomEventId = "MyCustomEventId"
 _customEvent: adsk.core.CustomEvent = None
+_customEventHandler: adsk.core.CustomEventHandler = None
+palette_handlers = []
 
 
 # Executed when add-in is run.
@@ -89,6 +91,16 @@ def start():
     # コマンドをメインツールバーに昇格させるかどうかを指定します。
     control.isPromoted = IS_PROMOTED
 
+    # CustomEventの登録
+    global _myCustomEventId, _customEvent, _customEventHandler
+    try:
+        futil.app.unregisterCustomEvent(_myCustomEventId)
+    except Exception:
+        pass
+    _customEvent = futil.app.registerCustomEvent(_myCustomEventId)
+    _customEventHandler = MyCustomEventHandle()
+    _customEvent.add(_customEventHandler)
+
 
 # Executed when add-in is stopped.
 def stop():
@@ -110,6 +122,16 @@ def stop():
     # Delete the Palette
     if palette:
         palette.deleteMe()
+
+    # Unregister CustomEvent
+    global _myCustomEventId
+    futil.app.unregisterCustomEvent(_myCustomEventId)
+
+    global _customEventHandler
+    _customEventHandler = None
+
+    global palette_handlers
+    palette_handlers = []
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
@@ -144,26 +166,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
         height=300,
         useNewWebBrowser=True,
     )
-    futil.add_handler(palette.closed, palette_closed)
-    futil.add_handler(palette.navigatingURL, palette_navigating)
-    futil.add_handler(palette.incomingFromHTML, palette_incoming)
-    futil.log(
-        f"{CMD_NAME}: Created a new palette: ID = {palette.id}, Name = {palette.name}"
-    )
-
-    if palette.dockingState == adsk.core.PaletteDockingStates.PaletteDockStateFloating:
-        palette.dockingState = PALETTE_DOCKING
-
     palette.isVisible = True
 
-    global _myCustomEventId, _customEvent
-    try:
-        futil.app.unregisterCustomEvent(_myCustomEventId)
-    except Exception:
-        pass
-    _customEvent = futil.app.registerCustomEvent(_myCustomEventId)
-    onCustomEvent = MyCustomEventHandle()
-    _customEvent.add(onCustomEvent)
+    global palette_handlers
+    palette_handlers = []
+    futil.add_handler(palette.closed, palette_closed, local_handlers=palette_handlers)
+    futil.add_handler(palette.navigatingURL, palette_navigating, local_handlers=palette_handlers)
+    futil.add_handler(palette.incomingFromHTML, palette_incoming, local_handlers=palette_handlers)
 
     eventArgs = {"Value": 1}
     app.fireCustomEvent(_myCustomEventId, json.dumps(eventArgs))
@@ -171,6 +180,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 def palette_closed(args: adsk.core.UserInterfaceGeneralEventArgs):
     futil.log(f"{CMD_NAME}: {args.firingEvent.name}")
+    global palette_handlers
+    palette_handlers = []
 
 
 def palette_navigating(args: adsk.core.NavigationEventArgs):
@@ -183,6 +194,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     global _dataContainer
     try:
         if html_args.action == "htmlLoaded":
+            futil.log(f"{CMD_NAME}: htmlLoaded received.")
             # 起動時
             _dataContainer = DataFileContainer()
             
@@ -227,9 +239,6 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
 
-    global _myCustomEventId
-    futil.app.unregisterCustomEvent(_myCustomEventId)
-
 
 class MyCustomEventHandle(adsk.core.CustomEventHandler):
     def __init__(self):
@@ -245,10 +254,12 @@ class MyCustomEventHandle(adsk.core.CustomEventHandler):
             eventArgs = json.loads(args.additionalInfo)
             if eventArgs.get("action") == "loadData":
                 futil.log("Start loading data...")
+
                 global _dataContainer
-                if _dataContainer:
-                    _dataContainer.load()
-                    jstreeJson = _dataContainer.getJson()
+                container = _dataContainer
+                if container:
+                    container.load()
+                    jstreeJson = container.getJson()
                     
                     palette = ui.palettes.itemById(PALETTE_ID)
                     if palette:

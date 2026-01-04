@@ -1,6 +1,8 @@
 # Fusion360API Python Addin
 import adsk.core
 import adsk.fusion
+import time
+from ... import config
 
 
 class DataFileContainer:
@@ -8,6 +10,7 @@ class DataFileContainer:
         self.treeJson = None
         self.datas = {}
         self.idNumber = 0
+        self._last_do_events_time = 0
 
 
     def load(self):
@@ -35,7 +38,7 @@ class DataFileContainer:
         # トップレベル毎に関連ファイルの取得
         lst = [self.__getAllChildrenReferences__(df) for df in roots]
 
-        print(f"len(lst): {len(lst)}")
+        # print(f"len(lst): {len(lst)}")
         if len(lst) < 1:
             return
 
@@ -52,7 +55,7 @@ class DataFileContainer:
             infos.append(
                 {
                     "id": (idx + 1) * -1,
-                    "text": f"-- プロジェクト名:{df.parentProject.name} --",
+                    "text": config.MESSAGES["ProjectNamePrefix"].format(df.parentProject.name),
                     "icon": "fab fa-fort-awesome",
                     "thumbnail": df.thumbnail.dataObject.getAsBase64String(),
                     "children": [info],
@@ -73,12 +76,12 @@ class DataFileContainer:
 
         # オフラインチェック
         if app.isOffLine:
-            return "オフラインモードではチェック出来ません!!"
+            return config.MESSAGES["OfflineError"]
 
         # datafileチェック
         actData: adsk.core.DataFile = app.activeDocument.dataFile
         if not actData:
-            return "関連ドキュメントは有りません!"
+            return config.MESSAGES["NoDataError"]
 
         return ""
 
@@ -123,7 +126,7 @@ class DataFileContainer:
             ]
 
         def initDataDict(datafile: adsk.core.DataFile):
-            adsk.doEvents()
+            self._doEventsIfNeeded()
 
             self.idNumber += 1
             id = self.idNumber
@@ -179,7 +182,7 @@ class DataFileContainer:
         if not dataFile:
             return []
 
-        adsk.doEvents()
+        self._doEventsIfNeeded()
         return getChildrenReferences(initDataDict(dataFile), dataFile)
 
 
@@ -228,7 +231,7 @@ class DataFileContainer:
         rootDatas: list = []
         df: adsk.core.DataFile
         while len(checkDatas) > 0:
-            adsk.doEvents()
+            self._doEventsIfNeeded()
             hasParentDatas: list = []
             for df in checkDatas:
                 # 3d
@@ -253,7 +256,6 @@ class DataFileContainer:
         :return: JSON用リスト
         :rtype: list
         """
-        print(self.treeJson)
         return self.treeJson
 
 
@@ -286,7 +288,7 @@ class DataFileContainer:
         try:
             displyName = datafile.createdBy.displayName
         except Exception:
-            displyName = "?????"
+            displyName = config.MESSAGES["UnknownUser"]
 
         msg = [
             f"FileName: {self._get_data_file_fullname(datafile)}  Version: {datafile.versionNumber}",
@@ -306,3 +308,12 @@ class DataFileContainer:
         :rtype: str
         """
         return f"{datafile.name}.{datafile.fileExtension}"
+
+    def _doEventsIfNeeded(self):
+        """
+        適度にadsk.doEvents()を呼び出す (0.1秒間隔)
+        """
+        t = time.time()
+        if t - self._last_do_events_time > 0.1:
+            adsk.doEvents()
+            self._last_do_events_time = t
