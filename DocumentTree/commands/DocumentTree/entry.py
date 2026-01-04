@@ -185,12 +185,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         if html_args.action == "htmlLoaded":
             # 起動時
             _dataContainer = DataFileContainer()
-            jstreeJson = _dataContainer.getJson()
+            
+            # データを非同期で取得するためにCustomEventを発火
+            eventArgs = {"action": "loadData"}
+            app.fireCustomEvent(_myCustomEventId, json.dumps(eventArgs))
 
             html_args.returnData = json.dumps(
                 {
-                    "action": "send",
-                    "data": jstreeJson,
+                    "action": "loading",
+                    "data": [],
                 }
             )
 
@@ -235,7 +238,24 @@ class MyCustomEventHandle(adsk.core.CustomEventHandler):
     def notify(self, args):
         try:
             futil.log(f"{CMD_NAME}: {args.firingEvent.name}")
-            futil.log("hoge")
+            
+            if not args.additionalInfo:
+                return
+
+            eventArgs = json.loads(args.additionalInfo)
+            if eventArgs.get("action") == "loadData":
+                futil.log("Start loading data...")
+                global _dataContainer
+                if _dataContainer:
+                    _dataContainer.load()
+                    jstreeJson = _dataContainer.getJson()
+                    
+                    palette = ui.palettes.itemById(PALETTE_ID)
+                    if palette:
+                         palette.sendInfoToHTML("send", json.dumps({"data": jstreeJson}))
+                         futil.log("Data sent to palette.")
+
+            futil.log(f"Custom Event Info: {args.additionalInfo}")
         except Exception:
             futil.log("Failed:\n{}".format(traceback.format_exc()))
 

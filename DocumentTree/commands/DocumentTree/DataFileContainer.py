@@ -9,10 +9,11 @@ class DataFileContainer:
         self.datas = {}
         self.idNumber = 0
 
-        self.__register__()
 
-    # データの取得
-    def __register__(self):
+    def load(self):
+        """
+        データの取得
+        """
         app: adsk.core.Application = adsk.core.Application.get()
 
         self.treeJson = None
@@ -60,8 +61,14 @@ class DataFileContainer:
 
         self.treeJson = infos
 
-    # 実行チェック
+
     def __checkExec__(self) -> str:
+        """
+        実行チェック
+        
+        :return: エラーメッセージ
+        :rtype: str
+        """
         app: adsk.core.Application = adsk.core.Application.get()
 
         # オフラインチェック
@@ -75,8 +82,17 @@ class DataFileContainer:
 
         return ""
 
-    # 全関連datafile取得
-    def __getAllChildrenReferences__(self, dataFile: adsk.core.DataFile) -> list:
+
+    def __getAllChildrenReferences__(
+                self, dataFile: adsk.core.DataFile) -> list:
+        """
+        全関連datafile取得
+        
+        :param dataFile: 対象データファイル
+        :type dataFile: adsk.core.DataFile
+        :return: 全関連datafileリスト
+        :rtype: list
+        """
         # 対象拡張子
         targetFileExtension = [
             "f3d",
@@ -166,11 +182,19 @@ class DataFileContainer:
         adsk.doEvents()
         return getChildrenReferences(initDataDict(dataFile), dataFile)
 
-    # topデータファイルを取得
+
     def __getRootDataFiles__(
         self,
         datafile: adsk.core.DataFile,
     ) -> list:
+        """
+        topデータファイルを取得
+        
+        :param datafile: 対象データファイル
+        :type datafile: adsk.core.DataFile
+        :return: topデータファイルリスト
+        :rtype: list
+        """
         # 対象拡張子
         targetFileExtension = [
             "f3d",
@@ -221,13 +245,27 @@ class DataFileContainer:
 
         return rootDatas
 
-    # json用リスト
+
     def getJson(self) -> list:
+        """
+        JSON用リストを取得
+        
+        :return: JSON用リスト
+        :rtype: list
+        """
         print(self.treeJson)
         return self.treeJson
 
-    # datafile
+
     def getDataFile(self, id: int) -> adsk.core.DataFile:
+        """
+        IDからデータファイルを取得
+        
+        :param id: データファイルID
+        :type id: int
+        :return: データファイル
+        :rtype: adsk.core.DataFile
+        """
         if id not in self.datas:
             return None
 

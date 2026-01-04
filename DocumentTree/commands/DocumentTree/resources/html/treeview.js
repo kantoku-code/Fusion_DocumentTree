@@ -33,6 +33,7 @@ class TreeView {
     // Autodesk Fusionからデータを取得
     loadDataFromFusion() {
         // adskオブジェクトが利用可能になるまで待機
+        // adskオブジェクトが利用可能になるまで待機
         const adskWaiter = setInterval(() => {
             if (window.adsk) {
                 clearInterval(adskWaiter);
@@ -42,6 +43,11 @@ class TreeView {
                     adsk.fusionSendData("htmlLoaded", "").then((ret) => {
                         try {
                             const obj = JSON.parse(ret || "null");
+
+                            if (obj && obj.action === "loading") {
+                                console.log("Loading started...");
+                                return;
+                            }
 
                             if (obj && obj.data) {
                                 // データが配列でない場合は配列にラップする
@@ -65,6 +71,29 @@ class TreeView {
                 }, 100);
             }
         }, 100);
+
+        // Fusionからの非同期メッセージを受け取るハンドラ
+        window.fusionJavaScriptHandler = {
+            handle: (action, data) => {
+                if (action === 'send') {
+                    try {
+                        const obj = JSON.parse(data);
+                        if (obj && obj.data) {
+                            if (Array.isArray(obj.data)) {
+                                this.treeData = obj.data;
+                            } else {
+                                this.treeData = [obj.data];
+                            }
+                            this.render();
+                        } else {
+                            this.container.innerHTML = '<p>データが見つかりませんでした</p>';
+                        }
+                    } catch (error) {
+                        console.error('非同期データのパースエラー:', error);
+                    }
+                }
+            }
+        };
 
         // タイムアウト処理(10秒後)
         setTimeout(() => {
