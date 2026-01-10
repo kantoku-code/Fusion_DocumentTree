@@ -174,6 +174,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.add_handler(palette.navigatingURL, palette_navigating, local_handlers=palette_handlers)
     futil.add_handler(palette.incomingFromHTML, palette_incoming, local_handlers=palette_handlers)
 
+    if palette.dockingState == adsk.core.PaletteDockingStates.PaletteDockStateFloating:
+        palette.dockingState = PALETTE_DOCKING
+
     eventArgs = {"Value": 1}
     app.fireCustomEvent(_myCustomEventId, json.dumps(eventArgs))
 

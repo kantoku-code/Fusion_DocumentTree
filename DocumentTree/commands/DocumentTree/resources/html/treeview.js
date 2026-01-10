@@ -95,14 +95,7 @@ class TreeView {
             }
         };
 
-        // タイムアウト処理(10秒後)
-        setTimeout(() => {
-            if (!this.treeData || this.treeData.length === 0) {
-                clearInterval(adskWaiter);
-                console.warn('adskオブジェクトが見つかりませんでした。サンプルデータを使用します。');
-                this.loadSampleData();
-            }
-        }, 10000);
+
     }
 
     // フォールバック用サンプルデータ
@@ -412,12 +405,41 @@ class TreeView {
     }
 
     showContextMenu(event, nodeDiv) {
+        // トップレベルノード（treeRootの直下）の場合はメニューを表示しない
+        if (nodeDiv.parentElement.id === 'treeRoot') {
+            return;
+        }
+
         this.currentContextNode = nodeDiv;
         const menu = this.contextMenu;
 
         menu.classList.add('show');
-        menu.style.left = event.clientX + 'px';
-        menu.style.top = event.clientY + 'px';
+
+        let left = event.clientX;
+        let top = event.clientY;
+
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+
+        // 画面外にはみ出る場合の調整
+        requestAnimationFrame(() => {
+            const rect = menu.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+
+            // 下端チェック
+            if (rect.bottom > viewportHeight) {
+                // カーソルの上に表示 (高さ分引く)
+                top = Math.max(0, event.clientY - rect.height);
+                menu.style.top = top + 'px';
+            }
+
+            // 右端チェック (念のため)
+            if (rect.right > viewportWidth) {
+                left = Math.max(0, viewportWidth - rect.width);
+                menu.style.left = left + 'px';
+            }
+        });
     }
 
     hideContextMenu() {
