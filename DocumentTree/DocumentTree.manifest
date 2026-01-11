@@ -5,7 +5,7 @@
 	"description":	{
 		"":	"Display document link relationships."
 	},
-	"version":	"",
+	"version":	"0.1.0",
 	"runOnStartup":	false,
 	"supportedOS":	"windows",
 	"editEnabled":	true,
