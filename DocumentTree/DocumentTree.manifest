@@ -6,7 +6,7 @@
 		"":	"Display document link relationships."
 	},
 	"version":	"0.1.0",
-	"runOnStartup":	false,
+	"runOnStartup":	true,
 	"supportedOS":	"windows",
 	"editEnabled":	true,
 	"iconFilename":	"AddInIcon.svg"
